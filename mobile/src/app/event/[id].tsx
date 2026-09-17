@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { View, Text, Image, Pressable, StyleSheet, ScrollView, ActivityIndicator, Alert } from "react-native";
-import { useLocalSearchParams, useFocusEffect, Stack } from "expo-router";
+import { useLocalSearchParams, useFocusEffect, router, Stack } from "expo-router";
 import { EventDoc, getEventById } from "../../services/events";
 
 export default function EventDetails() {
@@ -80,7 +80,7 @@ export default function EventDetails() {
         <Pressable
           style={[styles.bookButton, event.availableSeats <= 0 && styles.bookButtonDisabled]}
           disabled={event.availableSeats <= 0}
-          onPress={() => Alert.alert("Coming soon", "Booking will be available in the next step.")}
+          onPress={() => router.push({ pathname: "/booking/[id]", params: { id: event.id } })}
         >
           <Text style={styles.bookButtonText}>
             {event.availableSeats <= 0 ? "Sold Out" : "Book Now"}
