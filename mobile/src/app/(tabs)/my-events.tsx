@@ -23,6 +23,7 @@ import {
   updateEvent,
 } from "../../services/events";
 import { BookingDoc, getBookingsForEvent } from "../../services/bookings";
+import { notifyEventUpdated } from "../../services/notifications";
 
 type BookingWithAttendee = BookingDoc & { attendeeName: string; attendeeEmail: string };
 
@@ -128,6 +129,7 @@ export default function MyEvents() {
     try {
       if (editingId) {
         await updateEvent(editingId, data);
+        await notifyEventUpdated(data.name);
       } else {
         await createEvent(user.uid, data);
       }

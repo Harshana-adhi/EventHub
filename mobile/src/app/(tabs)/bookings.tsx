@@ -4,6 +4,7 @@ import { useFocusEffect } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { BookingDoc, cancelBooking, getUserBookings } from "../../services/bookings";
 import { EventDoc, getEventById } from "../../services/events";
+import { cancelEventReminder, notifyBookingCancelled } from "../../services/notifications";
 
 type BookingWithEvent = BookingDoc & { event: EventDoc | null };
 
@@ -46,6 +47,8 @@ export default function Bookings() {
           setCancellingId(booking.id);
           try {
             await cancelBooking(booking.id);
+            await cancelEventReminder(booking.id);
+            if (booking.event) await notifyBookingCancelled(booking.event.name);
             loadBookings();
           } catch (error: any) {
             Alert.alert("Cancel failed", error.message);

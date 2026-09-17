@@ -12,7 +12,9 @@ export type BookingDoc = {
 
 const bookingsRef = collection(db, "bookings");
 
-export async function createBooking(userId: string, eventId: string, seats: number) {
+export async function createBooking(userId: string, eventId: string, seats: number): Promise<string> {
+  const bookingRef = doc(bookingsRef);
+
   await runTransaction(db, async (transaction) => {
     const eventRef = doc(db, "events", eventId);
     const eventSnap = await transaction.get(eventRef);
@@ -23,7 +25,6 @@ export async function createBooking(userId: string, eventId: string, seats: numb
 
     transaction.update(eventRef, { availableSeats: availableSeats - seats });
 
-    const bookingRef = doc(bookingsRef);
     transaction.set(bookingRef, {
       userId,
       eventId,
@@ -32,6 +33,8 @@ export async function createBooking(userId: string, eventId: string, seats: numb
       bookedAt: Timestamp.now(),
     });
   });
+
+  return bookingRef.id;
 }
 
 export async function getUserBookings(userId: string): Promise<BookingDoc[]> {

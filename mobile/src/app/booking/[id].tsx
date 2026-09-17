@@ -4,6 +4,7 @@ import { useLocalSearchParams, useFocusEffect, router, Stack } from "expo-router
 import { useAuth } from "../../context/AuthContext";
 import { EventDoc, getEventById } from "../../services/events";
 import { createBooking } from "../../services/bookings";
+import { notifyBookingConfirmed, scheduleEventReminder } from "../../services/notifications";
 
 export default function BookEvent() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -46,7 +47,9 @@ export default function BookEvent() {
 
     setSubmitting(true);
     try {
-      await createBooking(user.uid, event.id, seatsRequested);
+      const bookingId = await createBooking(user.uid, event.id, seatsRequested);
+      await notifyBookingConfirmed(event.name, seatsRequested);
+      await scheduleEventReminder(bookingId, event.name, event.dateTime.toDate());
       Alert.alert("Booking confirmed", `You've booked ${seatsRequested} seat(s) for "${event.name}".`, [
         { text: "OK", onPress: () => router.replace("/(tabs)") },
       ]);
