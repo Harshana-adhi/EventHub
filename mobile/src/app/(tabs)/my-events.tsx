@@ -30,7 +30,7 @@ import {
 import { BookingDoc, getBookingsForEvent } from "../../services/bookings";
 import { notifyEventUpdated } from "../../services/notifications";
 import { ThemeColors, useThemeColors } from "../../constants/theme";
-import { formatPrice } from "../../utils/format";
+import { formatPrice, normalizeCategory } from "../../utils/format";
 
 type BookingWithAttendee = BookingDoc & { attendeeName: string; attendeeEmail: string };
 
@@ -154,7 +154,7 @@ export default function MyEvents() {
       imageUrl: form.imageUrl.trim(),
       dateTime,
       location: form.location.trim(),
-      category: form.category.trim(),
+      category: normalizeCategory(form.category),
       price,
       availableSeats,
     };

@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { Link, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth, UserRole } from "../../context/AuthContext";
@@ -43,82 +54,89 @@ export default function Register() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>Create Account</Text>
 
-      <View style={styles.inputRow}>
-        <Ionicons name="person-outline" size={18} color={colors.placeholder} style={styles.inputIcon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Name"
-          placeholderTextColor={colors.placeholder}
-          value={name}
-          onChangeText={setName}
-        />
-      </View>
-      <View style={styles.inputRow}>
-        <Ionicons name="mail-outline" size={18} color={colors.placeholder} style={styles.inputIcon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor={colors.placeholder}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
-      </View>
-      <View style={styles.inputRow}>
-        <Ionicons name="lock-closed-outline" size={18} color={colors.placeholder} style={styles.inputIcon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Password (min 6 characters)"
-          placeholderTextColor={colors.placeholder}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-      </View>
+        <View style={styles.inputRow}>
+          <Ionicons name="person-outline" size={18} color={colors.placeholder} style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Name"
+            placeholderTextColor={colors.placeholder}
+            value={name}
+            onChangeText={setName}
+          />
+        </View>
+        <View style={styles.inputRow}>
+          <Ionicons name="mail-outline" size={18} color={colors.placeholder} style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor={colors.placeholder}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
+        </View>
+        <View style={styles.inputRow}>
+          <Ionicons name="lock-closed-outline" size={18} color={colors.placeholder} style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Password (min 6 characters)"
+            placeholderTextColor={colors.placeholder}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+        </View>
 
-      <Text style={styles.label}>I am a:</Text>
-      <View style={styles.roleRow}>
-        <Pressable
-          style={[styles.roleButton, role === "user" && styles.roleButtonActive]}
-          onPress={() => setRole("user")}
-        >
-          <Ionicons name="person-outline" size={16} color={role === "user" ? "#fff" : colors.text} />
-          <Text style={role === "user" ? styles.roleTextActive : styles.roleText}>Attendee</Text>
+        <Text style={styles.label}>I am a:</Text>
+        <View style={styles.roleRow}>
+          <Pressable
+            style={[styles.roleButton, role === "user" && styles.roleButtonActive]}
+            onPress={() => setRole("user")}
+          >
+            <Ionicons name="person-outline" size={16} color={role === "user" ? "#fff" : colors.text} />
+            <Text style={role === "user" ? styles.roleTextActive : styles.roleText}>Attendee</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.roleButton, role === "organizer" && styles.roleButtonActive]}
+            onPress={() => setRole("organizer")}
+          >
+            <Ionicons name="briefcase-outline" size={16} color={role === "organizer" ? "#fff" : colors.text} />
+            <Text style={role === "organizer" ? styles.roleTextActive : styles.roleText}>Organizer</Text>
+          </Pressable>
+        </View>
+
+        <Pressable style={styles.button} onPress={handleRegister} disabled={submitting}>
+          {submitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="person-add-outline" size={18} color="#fff" />
+              <Text style={styles.buttonText}>Register</Text>
+            </>
+          )}
         </Pressable>
-        <Pressable
-          style={[styles.roleButton, role === "organizer" && styles.roleButtonActive]}
-          onPress={() => setRole("organizer")}
-        >
-          <Ionicons name="briefcase-outline" size={16} color={role === "organizer" ? "#fff" : colors.text} />
-          <Text style={role === "organizer" ? styles.roleTextActive : styles.roleText}>Organizer</Text>
-        </Pressable>
-      </View>
 
-      <Pressable style={styles.button} onPress={handleRegister} disabled={submitting}>
-        {submitting ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <>
-            <Ionicons name="person-add-outline" size={18} color="#fff" />
-            <Text style={styles.buttonText}>Register</Text>
-          </>
-        )}
-      </Pressable>
-
-      <Link href="/(auth)/login" style={styles.link}>
-        Already have an account? Log in
-      </Link>
-    </View>
+        <Link href="/(auth)/login" style={styles.link}>
+          Already have an account? Log in
+        </Link>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: { flex: 1, justifyContent: "center", padding: 24, backgroundColor: colors.background },
+    flex: { flex: 1, backgroundColor: colors.background },
+    container: { flexGrow: 1, justifyContent: "center", padding: 24, paddingVertical: 40 },
     title: { fontSize: 28, fontWeight: "800", textAlign: "center", marginBottom: 24, color: colors.text },
     inputRow: {
       flexDirection: "row",

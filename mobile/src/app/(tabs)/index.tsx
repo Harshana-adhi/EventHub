@@ -44,14 +44,19 @@ export default function Events() {
   );
 
   const categories = useMemo(() => {
-    const set = new Set(events.map((e) => e.category).filter(Boolean));
-    return Array.from(set);
+    const byKey = new Map<string, string>();
+    for (const e of events) {
+      if (!e.category) continue;
+      const key = e.category.trim().toLowerCase();
+      if (!byKey.has(key)) byKey.set(key, e.category.trim());
+    }
+    return Array.from(byKey.values());
   }, [events]);
 
   const filteredEvents = useMemo(() => {
     return events.filter((e) => {
       const matchesSearch = e.name.toLowerCase().includes(search.trim().toLowerCase());
-      const matchesCategory = !category || e.category === category;
+      const matchesCategory = !category || e.category.trim().toLowerCase() === category.trim().toLowerCase();
       return matchesSearch && matchesCategory;
     });
   }, [events, search, category]);

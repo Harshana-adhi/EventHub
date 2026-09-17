@@ -1,5 +1,16 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
@@ -63,7 +74,12 @@ export default function Profile() {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={styles.avatar}>
         <Ionicons name="person" size={40} color={colors.primary} />
       </View>
@@ -133,13 +149,15 @@ export default function Profile() {
           </>
         )}
       </Pressable>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: { flex: 1, padding: 24, paddingTop: 60, backgroundColor: colors.background },
+    flex: { flex: 1, backgroundColor: colors.background },
+    container: { flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 40 },
     center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background },
     avatar: {
       width: 76,

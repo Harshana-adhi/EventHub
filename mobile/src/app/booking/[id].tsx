@@ -1,5 +1,16 @@
 import { useCallback, useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { useLocalSearchParams, useFocusEffect, router, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
@@ -83,7 +94,7 @@ export default function BookEvent() {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Stack.Screen
         options={{
           title: "Confirm Booking",
@@ -92,7 +103,11 @@ export default function BookEvent() {
           headerTintColor: colors.text,
         }}
       />
-
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
       <Text style={styles.eventName}>{event.name}</Text>
       <View style={styles.metaRow}>
         <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
@@ -128,13 +143,15 @@ export default function BookEvent() {
           </>
         )}
       </Pressable>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: { flex: 1, padding: 20, backgroundColor: colors.background },
+    flex: { flex: 1, backgroundColor: colors.background },
+    container: { flexGrow: 1, padding: 20, paddingBottom: 40 },
     center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background },
     emptyText: { color: colors.textSecondary },
     eventName: { fontSize: 22, fontWeight: "800", color: colors.text },
