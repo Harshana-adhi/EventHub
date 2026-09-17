@@ -8,6 +8,7 @@ export default function TabsLayout() {
   return (
     <Tabs>
       <Tabs.Screen name="index" options={{ title: "Events" }} />
+      <Tabs.Screen name="bookings" options={{ title: "My Bookings" }} />
       <Tabs.Screen
         name="my-events"
         options={{ title: "My Events", href: isOrganizer ? undefined : null }}
