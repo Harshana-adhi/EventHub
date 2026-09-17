@@ -40,6 +40,12 @@ export type EventInput = {
 
 const eventsRef = collection(db, "events");
 
+export async function getEvents(): Promise<EventDoc[]> {
+  const q = query(eventsRef, orderBy("dateTime", "asc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as EventDoc));
+}
+
 export async function createEvent(organizerId: string, data: EventInput) {
   await addDoc(eventsRef, {
     ...data,
