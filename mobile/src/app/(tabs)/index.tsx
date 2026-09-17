@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, FlatList, Alert, ActivityIndicator } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import EventCard from "../../components/EventCard";
 import { EventDoc, getEvents } from "../../services/events";
 
@@ -84,7 +84,11 @@ export default function Events() {
           data={filteredEvents}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, gap: 12 }}
-          renderItem={({ item }) => <EventCard event={item} />}
+          renderItem={({ item }) => (
+            <Pressable onPress={() => router.push({ pathname: "/event/[id]", params: { id: item.id } })}>
+              <EventCard event={item} />
+            </Pressable>
+          )}
         />
       )}
     </View>
