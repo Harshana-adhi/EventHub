@@ -39,13 +39,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
-      if (firebaseUser) {
-        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-        setProfile(snap.exists() ? (snap.data() as UserProfile) : null);
-      } else {
+      try {
+        if (firebaseUser) {
+          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+          setProfile(snap.exists() ? (snap.data() as UserProfile) : null);
+        } else {
+          setProfile(null);
+        }
+      } catch {
         setProfile(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return unsubscribe;
   }, []);

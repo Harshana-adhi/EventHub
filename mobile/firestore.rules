@@ -1,0 +1,35 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.organizerId;
+      // Organizers can edit/delete their own events. Any signed-in user can
+      // adjust only availableSeats, since that's how booking/cancelling works.
+      allow update: if request.auth != null && (
+        request.auth.uid == resource.data.organizerId ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['availableSeats'])
+      );
+      allow delete: if request.auth != null && request.auth.uid == resource.data.organizerId;
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.organizerId
+      );
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow delete: if false;
+    }
+  }
+}

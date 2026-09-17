@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../services/firebase";
@@ -24,6 +25,8 @@ import {
 } from "../../services/events";
 import { BookingDoc, getBookingsForEvent } from "../../services/bookings";
 import { notifyEventUpdated } from "../../services/notifications";
+import { ThemeColors, useThemeColors } from "../../constants/theme";
+import { formatPrice } from "../../utils/format";
 
 type BookingWithAttendee = BookingDoc & { attendeeName: string; attendeeEmail: string };
 
@@ -40,6 +43,9 @@ const emptyForm = {
 
 export default function MyEvents() {
   const { user, profile } = useAuth();
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
+
   const [events, setEvents] = useState<EventDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -197,14 +203,16 @@ export default function MyEvents() {
       <View style={styles.header}>
         <Text style={styles.title}>My Events</Text>
         <Pressable style={styles.addButton} onPress={openAddModal}>
-          <Text style={styles.addButtonText}>+ Add Event</Text>
+          <Ionicons name="add" size={16} color="#fff" />
+          <Text style={styles.addButtonText}>Add Event</Text>
         </Pressable>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
       ) : events.length === 0 ? (
         <View style={styles.center}>
+          <Ionicons name="calendar-outline" size={40} color={colors.border} />
           <Text style={styles.emptyText}>You haven't created any events yet.</Text>
         </View>
       ) : (
@@ -214,22 +222,56 @@ export default function MyEvents() {
           contentContainerStyle={{ padding: 16, gap: 12 }}
           renderItem={({ item }) => (
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>{item.name}</Text>
-              <Text style={styles.cardMeta}>
-                {item.category} • {item.dateTime.toDate().toLocaleString()}
-              </Text>
-              <Text style={styles.cardMeta}>{item.location}</Text>
-              <Text style={styles.cardMeta}>
-                ${item.price} • {item.availableSeats} seats left
-              </Text>
+              <View style={styles.cardTitleRow}>
+                <Text style={styles.cardTitle} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                {item.availableSeats <= 0 && (
+                  <View style={styles.soldOutBadge}>
+                    <Text style={styles.soldOutText}>Sold out</Text>
+                  </View>
+                )}
+              </View>
+
+              {!!item.category && (
+                <View style={styles.categoryChip}>
+                  <Ionicons name="pricetag-outline" size={12} color={colors.primaryText} />
+                  <Text style={styles.categoryText} numberOfLines={1}>
+                    {item.category}
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.metaRow}>
+                <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                <Text style={styles.cardMeta} numberOfLines={1}>
+                  {item.dateTime.toDate().toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+                <Text style={styles.cardMeta} numberOfLines={1}>
+                  {item.location}
+                </Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Ionicons name="cash-outline" size={14} color={colors.textSecondary} />
+                <Text style={styles.cardMeta}>
+                  {formatPrice(item.price)} • {item.availableSeats} seats left
+                </Text>
+              </View>
+
               <View style={styles.cardActions}>
                 <Pressable style={styles.cardButton} onPress={() => openEditModal(item)}>
+                  <Ionicons name="create-outline" size={14} color={colors.primaryText} />
                   <Text style={styles.cardButtonText}>Edit</Text>
                 </Pressable>
                 <Pressable style={styles.cardButton} onPress={() => openBookingsModal(item)}>
-                  <Text style={styles.cardButtonText}>View Bookings</Text>
+                  <Ionicons name="people-outline" size={14} color={colors.primaryText} />
+                  <Text style={styles.cardButtonText}>Bookings</Text>
                 </Pressable>
                 <Pressable style={[styles.cardButton, styles.deleteButton]} onPress={() => handleDelete(item)}>
+                  <Ionicons name="trash-outline" size={14} color={colors.danger} />
                   <Text style={[styles.cardButtonText, styles.deleteButtonText]}>Delete</Text>
                 </Pressable>
               </View>
@@ -245,19 +287,22 @@ export default function MyEvents() {
           <TextInput
             style={styles.input}
             placeholder="Event name"
+            placeholderTextColor={colors.placeholder}
             value={form.name}
             onChangeText={(v) => setForm({ ...form, name: v })}
           />
           <TextInput
             style={[styles.input, styles.multiline]}
             placeholder="Description"
+            placeholderTextColor={colors.placeholder}
             multiline
             value={form.description}
             onChangeText={(v) => setForm({ ...form, description: v })}
           />
           <TextInput
             style={styles.input}
-            placeholder="Image URL"
+            placeholder="Image URL (direct link to an image file)"
+            placeholderTextColor={colors.placeholder}
             autoCapitalize="none"
             value={form.imageUrl}
             onChangeText={(v) => setForm({ ...form, imageUrl: v })}
@@ -265,24 +310,28 @@ export default function MyEvents() {
           <TextInput
             style={styles.input}
             placeholder="Date & time (YYYY-MM-DD HH:MM)"
+            placeholderTextColor={colors.placeholder}
             value={form.dateTime}
             onChangeText={(v) => setForm({ ...form, dateTime: v })}
           />
           <TextInput
             style={styles.input}
             placeholder="Location"
+            placeholderTextColor={colors.placeholder}
             value={form.location}
             onChangeText={(v) => setForm({ ...form, location: v })}
           />
           <TextInput
             style={styles.input}
             placeholder="Category"
+            placeholderTextColor={colors.placeholder}
             value={form.category}
             onChangeText={(v) => setForm({ ...form, category: v })}
           />
           <TextInput
             style={styles.input}
-            placeholder="Price"
+            placeholder="Price (LKR)"
+            placeholderTextColor={colors.placeholder}
             keyboardType="numeric"
             value={form.price}
             onChangeText={(v) => setForm({ ...form, price: v })}
@@ -290,6 +339,7 @@ export default function MyEvents() {
           <TextInput
             style={styles.input}
             placeholder="Available seats"
+            placeholderTextColor={colors.placeholder}
             keyboardType="numeric"
             value={form.availableSeats}
             onChangeText={(v) => setForm({ ...form, availableSeats: v })}
@@ -317,7 +367,7 @@ export default function MyEvents() {
           <Text style={styles.title}>Bookings for {bookingsEvent?.name}</Text>
 
           {loadingBookings ? (
-            <ActivityIndicator size="large" style={{ marginTop: 24 }} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 24 }} />
           ) : eventBookings.length === 0 ? (
             <Text style={[styles.emptyText, { marginTop: 24 }]}>No bookings for this event yet.</Text>
           ) : (
@@ -327,17 +377,22 @@ export default function MyEvents() {
               contentContainerStyle={{ gap: 12, paddingVertical: 16 }}
               renderItem={({ item }) => (
                 <View style={styles.card}>
-                  <Text style={styles.cardTitle}>{item.attendeeName}</Text>
+                  <View style={styles.metaRow}>
+                    <Ionicons name="person-outline" size={14} color={colors.textSecondary} />
+                    <Text style={styles.cardTitle}>{item.attendeeName}</Text>
+                  </View>
                   <Text style={styles.cardMeta}>{item.attendeeEmail}</Text>
                   <Text style={styles.cardMeta}>{item.seats} seat(s)</Text>
-                  <Text
-                    style={[
-                      styles.cardMeta,
-                      item.status === "cancelled" ? styles.deleteButtonText : styles.cardButtonText,
-                    ]}
-                  >
-                    {item.status === "cancelled" ? "Cancelled" : "Confirmed"}
-                  </Text>
+                  <View style={styles.metaRow}>
+                    <Ionicons
+                      name={item.status === "cancelled" ? "close-circle-outline" : "checkmark-circle-outline"}
+                      size={14}
+                      color={item.status === "cancelled" ? colors.danger : colors.success}
+                    />
+                    <Text style={item.status === "cancelled" ? styles.deleteButtonText : styles.cardButtonText}>
+                      {item.status === "cancelled" ? "Cancelled" : "Confirmed"}
+                    </Text>
+                  </View>
                 </View>
               )}
             />
@@ -352,54 +407,88 @@ export default function MyEvents() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 60,
-  },
-  title: { fontSize: 24, fontWeight: "bold" },
-  addButton: {
-    backgroundColor: "#4630eb",
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    alignItems: "center",
-  },
-  addButtonText: { color: "#fff", fontWeight: "600" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  emptyText: { color: "#666", textAlign: "center" },
-  card: {
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 10,
-    padding: 14,
-  },
-  cardTitle: { fontSize: 16, fontWeight: "600" },
-  cardMeta: { color: "#666", marginTop: 2 },
-  cardActions: { flexDirection: "row", gap: 12, marginTop: 10 },
-  cardButton: {
-    borderWidth: 1,
-    borderColor: "#4630eb",
-    borderRadius: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  cardButtonText: { color: "#4630eb", fontWeight: "600" },
-  deleteButton: { borderColor: "#c00" },
-  deleteButtonText: { color: "#c00" },
-  modalContainer: { flex: 1, padding: 24, paddingTop: 60 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-  },
-  multiline: { minHeight: 80, textAlignVertical: "top" },
-  cancelButton: { alignItems: "center", padding: 12, marginTop: 8 },
-  cancelButtonText: { color: "#666" },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: 16,
+      paddingTop: 60,
+    },
+    title: { fontSize: 24, fontWeight: "bold", color: colors.text },
+    addButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: colors.primary,
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+    },
+    addButtonText: { color: "#fff", fontWeight: "600" },
+    center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 8 },
+    emptyText: { color: colors.textSecondary, textAlign: "center" },
+    card: {
+      borderRadius: 14,
+      padding: 14,
+      backgroundColor: colors.surface,
+      shadowColor: "#000",
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 2,
+      gap: 4,
+    },
+    cardTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+    cardTitle: { fontSize: 16, fontWeight: "700", flexShrink: 1, color: colors.text },
+    soldOutBadge: {
+      backgroundColor: colors.dangerSoft,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+    },
+    soldOutText: { color: colors.danger, fontSize: 11, fontWeight: "700" },
+    categoryChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      alignSelf: "flex-start",
+      backgroundColor: colors.primarySoft,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    categoryText: { color: colors.primaryText, fontSize: 12, fontWeight: "600" },
+    metaRow: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 18 },
+    cardMeta: { color: colors.textSecondary, flexShrink: 1 },
+    cardActions: { flexDirection: "row", flexWrap: "wrap", rowGap: 8, columnGap: 10, marginTop: 8 },
+    cardButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      borderRadius: 6,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+    },
+    cardButtonText: { color: colors.primaryText, fontWeight: "600" },
+    deleteButton: { borderColor: colors.danger },
+    deleteButtonText: { color: colors.danger },
+    modalContainer: { flex: 1, padding: 24, paddingTop: 60, backgroundColor: colors.background },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      padding: 12,
+      marginTop: 12,
+      color: colors.text,
+      backgroundColor: colors.surfaceAlt,
+    },
+    multiline: { minHeight: 80, textAlignVertical: "top" },
+    cancelButton: { alignItems: "center", padding: 12, marginTop: 8 },
+    cancelButtonText: { color: colors.textSecondary },
+  });
+}

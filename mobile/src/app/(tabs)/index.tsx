@@ -1,10 +1,25 @@
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, FlatList, Alert, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  FlatList,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { router, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import EventCard from "../../components/EventCard";
 import { EventDoc, getEvents } from "../../services/events";
+import { ThemeColors, useThemeColors } from "../../constants/theme";
 
 export default function Events() {
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
+
   const [events, setEvents] = useState<EventDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -45,38 +60,54 @@ export default function Events() {
     <View style={styles.container}>
       <Text style={styles.title}>Events</Text>
 
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search events"
-        value={search}
-        onChangeText={setSearch}
-      />
+      <View style={styles.searchRow}>
+        <Ionicons name="search" size={18} color={colors.placeholder} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search events"
+          placeholderTextColor={colors.placeholder}
+          value={search}
+          onChangeText={setSearch}
+        />
+      </View>
 
       {categories.length > 0 && (
-        <FlatList
+        <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          data={["All", ...categories]}
-          keyExtractor={(item) => item}
+          style={styles.filterScroll}
           contentContainerStyle={styles.filterRow}
-          renderItem={({ item }) => {
+        >
+          {["All", ...categories].map((item) => {
             const isActive = item === "All" ? category === null : category === item;
             return (
               <Pressable
+                key={item}
                 style={[styles.filterChip, isActive && styles.filterChipActive]}
                 onPress={() => setCategory(item === "All" ? null : item)}
               >
-                <Text style={isActive ? styles.filterTextActive : styles.filterText}>{item}</Text>
+                <Ionicons
+                  name={item === "All" ? "apps-outline" : "pricetag-outline"}
+                  size={13}
+                  color={isActive ? "#fff" : colors.textSecondary}
+                />
+                <Text
+                  style={isActive ? styles.filterTextActive : styles.filterText}
+                  numberOfLines={1}
+                >
+                  {item}
+                </Text>
               </Pressable>
             );
-          }}
-        />
+          })}
+        </ScrollView>
       )}
 
       {loading ? (
-        <ActivityIndicator size="large" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
       ) : filteredEvents.length === 0 ? (
         <View style={styles.center}>
+          <Ionicons name="calendar-clear-outline" size={40} color={colors.border} />
           <Text style={styles.emptyText}>No events found.</Text>
         </View>
       ) : (
@@ -95,28 +126,45 @@ export default function Events() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  title: { fontSize: 24, fontWeight: "bold", padding: 16, paddingTop: 60, paddingBottom: 8 },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 12,
-    marginHorizontal: 16,
-  },
-  filterRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
-  filterChip: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    marginRight: 8,
-  },
-  filterChipActive: { backgroundColor: "#4630eb", borderColor: "#4630eb" },
-  filterText: { color: "#444" },
-  filterTextActive: { color: "#fff", fontWeight: "600" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  emptyText: { color: "#666" },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    title: { fontSize: 26, fontWeight: "800", padding: 16, paddingTop: 60, paddingBottom: 8, color: colors.text },
+    searchRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      marginHorizontal: 16,
+      paddingHorizontal: 12,
+      backgroundColor: colors.surfaceAlt,
+    },
+    searchIcon: { marginRight: 8 },
+    searchInput: {
+      flex: 1,
+      paddingVertical: 12,
+      color: colors.text,
+    },
+    filterScroll: { flexGrow: 0, flexShrink: 0 },
+    filterRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: "center" },
+    filterChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      minHeight: 34,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 20,
+      paddingVertical: 7,
+      paddingHorizontal: 14,
+      marginRight: 8,
+      backgroundColor: colors.surfaceAlt,
+    },
+    filterChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+    filterText: { color: colors.text },
+    filterTextActive: { color: "#fff", fontWeight: "600" },
+    center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 8 },
+    emptyText: { color: colors.textSecondary },
+  });
+}
