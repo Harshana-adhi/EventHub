@@ -11,7 +11,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../../context/AuthContext";
+import { db } from "../../services/firebase";
 import {
   EventDoc,
   EventInput,
@@ -20,6 +22,9 @@ import {
   getEventsByOrganizer,
   updateEvent,
 } from "../../services/events";
+import { BookingDoc, getBookingsForEvent } from "../../services/bookings";
+
+type BookingWithAttendee = BookingDoc & { attendeeName: string; attendeeEmail: string };
 
 const emptyForm = {
   name: "",
@@ -40,6 +45,9 @@ export default function MyEvents() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const [bookingsEvent, setBookingsEvent] = useState<EventDoc | null>(null);
+  const [eventBookings, setEventBookings] = useState<BookingWithAttendee[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
 
   const loadEvents = useCallback(async () => {
     if (!user) return;
@@ -132,6 +140,30 @@ export default function MyEvents() {
     }
   }
 
+  async function openBookingsModal(event: EventDoc) {
+    setBookingsEvent(event);
+    setLoadingBookings(true);
+    try {
+      const list = await getBookingsForEvent(event.id);
+      const withAttendees = await Promise.all(
+        list.map(async (booking) => {
+          const userSnap = await getDoc(doc(db, "users", booking.userId));
+          const userData = userSnap.data();
+          return {
+            ...booking,
+            attendeeName: userData?.name ?? "Unknown",
+            attendeeEmail: userData?.email ?? "",
+          };
+        })
+      );
+      setEventBookings(withAttendees);
+    } catch (error: any) {
+      Alert.alert("Failed to load bookings", error.message);
+    } finally {
+      setLoadingBookings(false);
+    }
+  }
+
   function handleDelete(event: EventDoc) {
     Alert.alert("Delete event", `Remove "${event.name}"? This cannot be undone.`, [
       { text: "Cancel", style: "cancel" },
@@ -191,6 +223,9 @@ export default function MyEvents() {
               <View style={styles.cardActions}>
                 <Pressable style={styles.cardButton} onPress={() => openEditModal(item)}>
                   <Text style={styles.cardButtonText}>Edit</Text>
+                </Pressable>
+                <Pressable style={styles.cardButton} onPress={() => openBookingsModal(item)}>
+                  <Text style={styles.cardButtonText}>View Bookings</Text>
                 </Pressable>
                 <Pressable style={[styles.cardButton, styles.deleteButton]} onPress={() => handleDelete(item)}>
                   <Text style={[styles.cardButtonText, styles.deleteButtonText]}>Delete</Text>
@@ -267,6 +302,47 @@ export default function MyEvents() {
           </Pressable>
           <Pressable style={styles.cancelButton} onPress={() => setModalVisible(false)}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
+          </Pressable>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={bookingsEvent !== null}
+        animationType="slide"
+        onRequestClose={() => setBookingsEvent(null)}
+      >
+        <View style={styles.modalContainer}>
+          <Text style={styles.title}>Bookings for {bookingsEvent?.name}</Text>
+
+          {loadingBookings ? (
+            <ActivityIndicator size="large" style={{ marginTop: 24 }} />
+          ) : eventBookings.length === 0 ? (
+            <Text style={[styles.emptyText, { marginTop: 24 }]}>No bookings for this event yet.</Text>
+          ) : (
+            <FlatList
+              data={eventBookings}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ gap: 12, paddingVertical: 16 }}
+              renderItem={({ item }) => (
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>{item.attendeeName}</Text>
+                  <Text style={styles.cardMeta}>{item.attendeeEmail}</Text>
+                  <Text style={styles.cardMeta}>{item.seats} seat(s)</Text>
+                  <Text
+                    style={[
+                      styles.cardMeta,
+                      item.status === "cancelled" ? styles.deleteButtonText : styles.cardButtonText,
+                    ]}
+                  >
+                    {item.status === "cancelled" ? "Cancelled" : "Confirmed"}
+                  </Text>
+                </View>
+              )}
+            />
+          )}
+
+          <Pressable style={styles.cancelButton} onPress={() => setBookingsEvent(null)}>
+            <Text style={styles.cancelButtonText}>Close</Text>
           </Pressable>
         </View>
       </Modal>
