@@ -9,10 +9,14 @@ import {
   FlatList,
   Modal,
   ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { doc, getDoc } from "firebase/firestore";
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../services/firebase";
 import {
@@ -34,7 +38,6 @@ const emptyForm = {
   name: "",
   description: "",
   imageUrl: "",
-  dateTime: "",
   location: "",
   category: "",
   price: "",
@@ -51,6 +54,9 @@ export default function MyEvents() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [dateTime, setDateTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [bookingsEvent, setBookingsEvent] = useState<EventDoc | null>(null);
   const [eventBookings, setEventBookings] = useState<BookingWithAttendee[]>([]);
@@ -78,6 +84,7 @@ export default function MyEvents() {
   function openAddModal() {
     setEditingId(null);
     setForm(emptyForm);
+    setDateTime(new Date());
     setModalVisible(true);
   }
 
@@ -87,25 +94,46 @@ export default function MyEvents() {
       name: event.name,
       description: event.description,
       imageUrl: event.imageUrl,
-      dateTime: event.dateTime.toDate().toISOString().slice(0, 16).replace("T", " "),
       location: event.location,
       category: event.category,
       price: String(event.price),
       availableSeats: String(event.availableSeats),
     });
+    setDateTime(event.dateTime.toDate());
     setModalVisible(true);
+  }
+
+  function handleDatePicked(event: DateTimePickerEvent, selected?: Date) {
+    setShowDatePicker(false);
+    if (event.type === "dismissed" || !selected) return;
+
+    if (Platform.OS === "android") {
+      setDateTime((prev) => {
+        const merged = new Date(prev);
+        merged.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
+        return merged;
+      });
+      setShowTimePicker(true);
+    } else {
+      setDateTime(selected);
+    }
+  }
+
+  function handleTimePicked(event: DateTimePickerEvent, selected?: Date) {
+    setShowTimePicker(false);
+    if (event.type === "dismissed" || !selected) return;
+
+    setDateTime((prev) => {
+      const merged = new Date(prev);
+      merged.setHours(selected.getHours(), selected.getMinutes());
+      return merged;
+    });
   }
 
   async function handleSubmit() {
     if (!user) return;
-    if (!form.name.trim() || !form.description.trim() || !form.location.trim() || !form.category.trim()) {
-      Alert.alert("Missing info", "Please fill in all required fields.");
-      return;
-    }
-
-    const dateTime = new Date(form.dateTime.replace(" ", "T"));
-    if (isNaN(dateTime.getTime())) {
-      Alert.alert("Invalid date", "Use the format YYYY-MM-DD HH:MM, e.g. 2026-03-05 18:00");
+    if (!form.name.trim() || !form.location.trim() || !form.category.trim()) {
+      Alert.alert("Missing info", "Please fill in the event name, location and category.");
       return;
     }
 
@@ -281,81 +309,102 @@ export default function MyEvents() {
       )}
 
       <Modal visible={modalVisible} animationType="slide" onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalContainer}>
-          <Text style={styles.title}>{editingId ? "Edit Event" : "Add Event"}</Text>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <ScrollView
+            style={styles.modalContainer}
+            contentContainerStyle={styles.modalContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={styles.title}>{editingId ? "Edit Event" : "Add Event"}</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Event name"
-            placeholderTextColor={colors.placeholder}
-            value={form.name}
-            onChangeText={(v) => setForm({ ...form, name: v })}
-          />
-          <TextInput
-            style={[styles.input, styles.multiline]}
-            placeholder="Description"
-            placeholderTextColor={colors.placeholder}
-            multiline
-            value={form.description}
-            onChangeText={(v) => setForm({ ...form, description: v })}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Image URL (direct link to an image file)"
-            placeholderTextColor={colors.placeholder}
-            autoCapitalize="none"
-            value={form.imageUrl}
-            onChangeText={(v) => setForm({ ...form, imageUrl: v })}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Date & time (YYYY-MM-DD HH:MM)"
-            placeholderTextColor={colors.placeholder}
-            value={form.dateTime}
-            onChangeText={(v) => setForm({ ...form, dateTime: v })}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Location"
-            placeholderTextColor={colors.placeholder}
-            value={form.location}
-            onChangeText={(v) => setForm({ ...form, location: v })}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Category"
-            placeholderTextColor={colors.placeholder}
-            value={form.category}
-            onChangeText={(v) => setForm({ ...form, category: v })}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Price (LKR)"
-            placeholderTextColor={colors.placeholder}
-            keyboardType="numeric"
-            value={form.price}
-            onChangeText={(v) => setForm({ ...form, price: v })}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Available seats"
-            placeholderTextColor={colors.placeholder}
-            keyboardType="numeric"
-            value={form.availableSeats}
-            onChangeText={(v) => setForm({ ...form, availableSeats: v })}
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="Event name"
+              placeholderTextColor={colors.placeholder}
+              value={form.name}
+              onChangeText={(v) => setForm({ ...form, name: v })}
+            />
+            <TextInput
+              style={[styles.input, styles.multiline]}
+              placeholder="Description (optional)"
+              placeholderTextColor={colors.placeholder}
+              multiline
+              value={form.description}
+              onChangeText={(v) => setForm({ ...form, description: v })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Image URL (direct link to an image file)"
+              placeholderTextColor={colors.placeholder}
+              autoCapitalize="none"
+              value={form.imageUrl}
+              onChangeText={(v) => setForm({ ...form, imageUrl: v })}
+            />
 
-          <Pressable style={styles.addButton} onPress={handleSubmit} disabled={submitting}>
-            {submitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.addButtonText}>{editingId ? "Save Changes" : "Create Event"}</Text>
+            <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+              <View style={styles.dateRow}>
+                <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+                <Text style={styles.dateText}>{dateTime.toLocaleString()}</Text>
+              </View>
+            </Pressable>
+            {showDatePicker && (
+              <DateTimePicker
+                value={dateTime}
+                mode={Platform.OS === "ios" ? "datetime" : "date"}
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={handleDatePicked}
+              />
             )}
-          </Pressable>
-          <Pressable style={styles.cancelButton} onPress={() => setModalVisible(false)}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </Pressable>
-        </View>
+            {showTimePicker && (
+              <DateTimePicker value={dateTime} mode="time" display="default" onChange={handleTimePicked} />
+            )}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Location"
+              placeholderTextColor={colors.placeholder}
+              value={form.location}
+              onChangeText={(v) => setForm({ ...form, location: v })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Category"
+              placeholderTextColor={colors.placeholder}
+              value={form.category}
+              onChangeText={(v) => setForm({ ...form, category: v })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Price (LKR)"
+              placeholderTextColor={colors.placeholder}
+              keyboardType="numeric"
+              value={form.price}
+              onChangeText={(v) => setForm({ ...form, price: v })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Available seats"
+              placeholderTextColor={colors.placeholder}
+              keyboardType="numeric"
+              value={form.availableSeats}
+              onChangeText={(v) => setForm({ ...form, availableSeats: v })}
+            />
+
+            <Pressable style={styles.addButton} onPress={handleSubmit} disabled={submitting}>
+              {submitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.addButtonText}>{editingId ? "Save Changes" : "Create Event"}</Text>
+              )}
+            </Pressable>
+            <Pressable style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </Pressable>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal
@@ -363,7 +412,7 @@ export default function MyEvents() {
         animationType="slide"
         onRequestClose={() => setBookingsEvent(null)}
       >
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, styles.modalContent]}>
           <Text style={styles.title}>Bookings for {bookingsEvent?.name}</Text>
 
           {loadingBookings ? (
@@ -477,7 +526,8 @@ function createStyles(colors: ThemeColors) {
     cardButtonText: { color: colors.primaryText, fontWeight: "600" },
     deleteButton: { borderColor: colors.danger },
     deleteButtonText: { color: colors.danger },
-    modalContainer: { flex: 1, padding: 24, paddingTop: 60, backgroundColor: colors.background },
+    modalContainer: { flex: 1, backgroundColor: colors.background },
+    modalContent: { padding: 24, paddingTop: 60, paddingBottom: 40 },
     input: {
       borderWidth: 1,
       borderColor: colors.border,
@@ -488,6 +538,8 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surfaceAlt,
     },
     multiline: { minHeight: 80, textAlignVertical: "top" },
+    dateRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+    dateText: { color: colors.text },
     cancelButton: { alignItems: "center", padding: 12, marginTop: 8 },
     cancelButtonText: { color: colors.textSecondary },
   });

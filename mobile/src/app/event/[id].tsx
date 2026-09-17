@@ -77,7 +77,7 @@ export default function EventDetails() {
           </View>
         )}
 
-        <Text style={styles.description}>{event.description}</Text>
+        {!!event.description && <Text style={styles.description}>{event.description}</Text>}
 
         <View style={styles.detailRow}>
           <View style={styles.detailLabelRow}>
